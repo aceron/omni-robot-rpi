@@ -45,8 +45,8 @@ pwm.append(GPIO.PWM(33, freq))
 pwm.append(GPIO.PWM(35, freq))
 
 for idx in range(0, 3):
-	pwm[idx*2].start(0.0)
-	pwm[idx*2+1].start(0.0)
+    pwm[idx*2].start(0.0)
+    pwm[idx*2+1].start(0.0)
 
 w[0] = (-math.sin(a[0])*math.cos(a[0])*v_x + math.cos(a[0])*math.cos(theta)*v_y + R*v_t)/r
 w[1] = (-math.sin(a[1])*math.cos(a[1])*v_x + math.cos(a[1])*math.cos(theta)*v_y + R*v_t)/r
@@ -55,31 +55,31 @@ w[2] = (-math.sin(a[2])*math.cos(a[2])*v_x + math.cos(a[2])*math.cos(theta)*v_y 
 print(w)
 
 def encoder_0_cbk(chan):
-        global enc, enc_last, states
-        curr = str(GPIO.input(13)) + str(GPIO.input(15))
-        key = enc_last[0] + curr
-        if key in states:
-                drctn = states[key]
-                enc_last[0] = curr
-                enc[0] += drctn
+    global enc, enc_last, states
+    curr = str(GPIO.input(13)) + str(GPIO.input(15))
+    key = enc_last[0] + curr
+    if key in states:
+        drctn = states[key]
+        enc_last[0] = curr
+        enc[0] += drctn
 
 def encoder_1_cbk(chan):
-        global enc, enc_last, states
-        curr = str(GPIO.input(16)) + str(GPIO.input(18))
-        key = enc_last[1] + curr
-        if key in states:
-                drctn = states[key]
-                enc_last[1] = curr
-                enc[1] += drctn
+    global enc, enc_last, states
+    curr = str(GPIO.input(16)) + str(GPIO.input(18))
+    key = enc_last[1] + curr
+    if key in states:
+        drctn = states[key]
+        enc_last[1] = curr
+        enc[1] += drctn
 
 def encoder_2_cbk(chan):
-        global enc, enc_last, states
-        curr = str(GPIO.input(29)) + str(GPIO.input(31))
-        key = enc_last[2] + curr
-        if key in states:
-                drctn = states[key]
-                enc_last[2] = curr
-                enc[2] += drctn
+    global enc, enc_last, states
+    curr = str(GPIO.input(29)) + str(GPIO.input(31))
+    key = enc_last[2] + curr
+    if key in states:
+        drctn = states[key]
+        enc_last[2] = curr
+        enc[2] += drctn
 
 GPIO.add_event_detect(13, GPIO.BOTH, callback=encoder_0_cbk)
 GPIO.add_event_detect(15, GPIO.BOTH, callback=encoder_0_cbk)
@@ -89,43 +89,42 @@ GPIO.add_event_detect(29, GPIO.BOTH, callback=encoder_2_cbk)
 GPIO.add_event_detect(31, GPIO.BOTH, callback=encoder_2_cbk)
 
 def display_stats():
-        global can_display, enc, vel, w, duty
-        while(can_display):
-		print("---")
-                print("command: " + str(w))
-                print("pulses: " + str(enc))
-                print("speed: " + str(vel))
-		print("duty: " + str(duty))
-                time.sleep(0.25)
+    global can_display, enc, vel, w, duty
+    while(can_display):
+        print("---")
+        print("command: " + str(w))
+        print("pulses: " + str(enc))
+        print("speed: " + str(vel))
+        print("duty: " + str(duty))
+        time.sleep(0.25)
 
 
 def control_loop():
-        global can_control, v_x, v_y, v_t, enc, vel, prev_enc, ppr, duty, w
-        while(can_control):
-                for idx in range(0, 3):
-                        vel[idx] = 2*math.pi*(enc[idx] - prev_enc[idx])/ppr
-                        prev_enc[idx] = enc[idx]
-                        err = vel[idx] - w[idx]
-                        if err > 0.0:
-                                duty[idx] -= 1.0
-                        elif err < 0.0:
-                                duty[idx] += 1.0
+    global can_control, v_x, v_y, v_t, enc, vel, prev_enc, ppr, duty, w
+    while(can_control):
+        for idx in range(0, 3):
+            vel[idx] = 2*math.pi*(enc[idx] - prev_enc[idx])/ppr
+            prev_enc[idx] = enc[idx]
+            err = vel[idx] - w[idx]
+            if err > 0.0:
+                    duty[idx] -= 1.0
+            elif err < 0.0:
+                    duty[idx] += 1.0    
+            if duty[idx] > 100.0:
+                    duty[idx] = 100.0
+            elif duty[idx] < -100.0:
+                    duty[idx] = -100.0   
 
-                        if duty[idx] > 100.0:
-                                duty[idx] = 100.0
-                        elif duty[idx] < -100.0:
-                                duty[idx] = -100.0
-
-			if duty[idx] == 0.0:
-				pwm[idx*2].ChangeDutyCycle(0.0)
-				pwm[idx*2+1].ChangeDutyCycle(0.0)
-			elif duty[idx] < 0.0:
-				pwm[idx*2].ChangeDutyCycle(0.0)
-				pwm[idx*2+1].ChangeDutyCycle(-duty[idx])
-			else:
-				pwm[idx*2].ChangeDutyCycle(duty[idx])
-				pwm[idx*2+1].ChangeDutyCycle(0.0)
-                time.sleep(0.025)
+            if duty[idx] == 0.0:
+                pwm[idx*2].ChangeDutyCycle(0.0)
+                pwm[idx*2+1].ChangeDutyCycle(0.0)
+            elif duty[idx] < 0.0:
+                pwm[idx*2].ChangeDutyCycle(0.0)
+                pwm[idx*2+1].ChangeDutyCycle(-duty[idx])
+            else:
+                pwm[idx*2].ChangeDutyCycle(duty[idx])
+                pwm[idx*2+1].ChangeDutyCycle(0.0)
+            time.sleep(0.025)
 
 dp = threading.Thread(target=display_stats)
 dp.start()
@@ -139,7 +138,7 @@ can_control = False
 dp.join()
 ct.join()
 for mtr in pwm:
-        mtr.stop()
+    mtr.stop()
 
 GPIO.remove_event_detect(13)
 GPIO.remove_event_detect(15)
