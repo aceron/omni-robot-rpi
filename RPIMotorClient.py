@@ -67,23 +67,23 @@ class PS4Controller(object):
                 # In the current setup, I have the state simply printing out to the screen.
                 
                 if self.hat_data[0][1] == 1:
-                    v_y = 0.01
+                    v_y = 0.1
                 elif self.hat_data[0][1] == -1:
-                    v_y = -0.01
+                    v_y = -0.1
                 else:
                     v_y = 0.0
 
                 if self.hat_data[0][0] == 1:
-                    v_x = 0.01
+                    v_x = 0.1
                 elif self.hat_data[0][0] == -1:
-                    v_x = -0.01
+                    v_x = -0.1
                 else:
                     v_x = 0.0
 
                 if self.button_data[4]==1 and self.button_data[5] == 0:
-                    v_t = 0.02   
+                    v_t = 0.2 
                 elif self.button_data[4]==0 and self.button_data[5] == 1:
-                    v_t = -0.02  
+                    v_t = -0.2  
                 else:
                     v_t = 0.0
 
@@ -92,7 +92,7 @@ class PS4Controller(object):
                 pprint.pprint(self.axis_data)
                 pprint.pprint(self.hat_data)
 
-                time.sleep(0.05)
+                time.sleep(0.025)
 
 def mainThread():
     global do_poll, v_x, v_y, v_t
@@ -109,7 +109,7 @@ def mainThread():
         req.vel_t = v_t
         res = client.SetState(req)
 
-        time.sleep(0.1)
+        time.sleep(0.05)
 
     channel.close()
 
