@@ -134,9 +134,9 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
         result = rpi_motor_pb2.StateReply()
 
         try:
-            self.v_x = request.v_x
-            self.v_y = request.v_y
-            self.v_t = request.v_t
+            self.v_x = request.vel_x
+            self.v_y = request.vel_y
+            self.v_t = request.vel_t
 
             self.w[0] = (-math.sin(self.a[0])*math.cos(self.a[0])*self.v_x + math.cos(self.a[0])*math.cos(self.theta)*self.v_y + self.R*self.v_t)/self.r
             self.w[1] = (-math.sin(self.a[1])*math.cos(self.a[1])*self.v_x + math.cos(self.a[1])*math.cos(self.theta)*self.v_y + self.R*self.v_t)/self.r
