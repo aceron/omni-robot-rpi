@@ -19,16 +19,16 @@ def run():
     req.vel_x = 0.01
     req.vel_y = 0.01
     req.vel_t = 0.0
-    client.SetState(req)
+    res = client.SetState(req)
 
     time.sleep(10)
 
     req.vel_x = 0.00
     req.vel_y = 0.00
     req.vel_t = 0.0
-    client.SetState(req)
+    res = client.SetState(req)
 
-    time.sleep(1)
+    time.sleep(10)
 
     channel.close()
 

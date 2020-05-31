@@ -1,7 +1,7 @@
 import RPi.GPIO as GPIO
 import time
-import math
 import threading
+import numpy as np
 
 from concurrent import futures
 import logging
@@ -19,20 +19,20 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
         self.chan_list = [33, 35, 36, 37, 38, 40]
         self.enc_list =  [13, 15, 16, 18, 29, 31]
 
-        self.enc = [0, 0, 0]
+        self.enc = np.array([0, 0, 0], dtype=np.int64)
         self.prev_enc = [0, 0, 0]
-        self.vel = [0, 0, 0]
+        self.vel = np.array([0, 0, 0], dtype=np.float64)
         self.enc_last = ["00", "00", "00"]
         self.states = {"0001":1, "0010":-1, "0100":-1, "0111":1, "1000":1, "1011":-1, "1101":-1, "1110":1}
 
         self.ppr = 4*80*1 # 4 pulses per motor rev., 80 motor rev. = 1 wheel rev.
-        self.duty = [0.0, 0.0, 0.0]
-        self.w = [0.0, 0.0, 0.0]
+        self.duty = np.array([0, 0, 0], dtype=np.float64)
+        self.w = np.array([0, 0, 0], dtype=np.float64)
 
         self.r = 0.0240
         self.R = 0.1041
-        self.theta = 0.0*math.pi/180.0
-        self.a = [self.theta, self.theta+120.0*math.pi/180.0, self.theta+240.0*math.pi/180.0]
+        self.theta = 0.0*np.pi/180.0
+        self.a = [self.theta, self.theta+120.0*np.pi/180.0, self.theta+240.0*np.pi/180.0]
         self.pwm = []
         self.freq = 200.0
 
@@ -144,10 +144,10 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
 
             print(self.w)
 
-            result.ok = True
+            result.res = True
         except Exception as e:
             print("ERROR: " + str(e))
-            result.ok = False
+            result.res = False
 
         return result
 
