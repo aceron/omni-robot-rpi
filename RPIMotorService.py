@@ -32,7 +32,7 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
         self.r = 0.0240
         self.R = 0.1041
         self.theta = 0.0*np.pi/180.0
-        self.a = [self.theta, self.theta+120.0*np.pi/180.0, self.theta+240.0*np.pi/180.0]
+        self.a = np.array([self.theta, self.theta+120.0*np.pi/180.0, self.theta+240.0*np.pi/180.0], dtype=np.float64)
         self.pwm = []
         self.freq = 200.0
 
@@ -107,7 +107,7 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
     def control_loop(self):
         while(self.can_control):
             for idx in range(0, 3):
-                self.vel[idx] = 2*math.pi*(self.enc[idx] - self.prev_enc[idx])/self.ppr
+                self.vel[idx] = 2*np.pi*(self.enc[idx] - self.prev_enc[idx])/self.ppr
                 self.prev_enc[idx] = self.enc[idx]
                 err = self.vel[idx] - self.w[idx]
                 if err > 0.0:
@@ -138,9 +138,11 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
             self.v_y = request.vel_y
             self.v_t = request.vel_t
 
-            self.w[0] = (-math.sin(self.a[0])*math.cos(self.a[0])*self.v_x + math.cos(self.a[0])*math.cos(self.theta)*self.v_y + self.R*self.v_t)/self.r
-            self.w[1] = (-math.sin(self.a[1])*math.cos(self.a[1])*self.v_x + math.cos(self.a[1])*math.cos(self.theta)*self.v_y + self.R*self.v_t)/self.r
-            self.w[2] = (-math.sin(self.a[2])*math.cos(self.a[2])*self.v_x + math.cos(self.a[2])*math.cos(self.theta)*self.v_y + self.R*self.v_t)/self.r
+            self.w = (-np.sin(self.a)*np.cos(self.a)*self.v_x + np.cos(self.a)*np.cos(self.theta)*self.v_y + self.R*self.v_t)/self.r
+            
+            #self.w[0] = (-np.sin(self.a[0])*np.cos(self.a[0])*self.v_x + np.cos(self.a[0])*np.cos(self.theta)*self.v_y + self.R*self.v_t)/self.r
+            #self.w[1] = (-np.sin(self.a[1])*np.cos(self.a[1])*self.v_x + np.cos(self.a[1])*np.cos(self.theta)*self.v_y + self.R*self.v_t)/self.r
+            #self.w[2] = (-np.sin(self.a[2])*np.cos(self.a[2])*self.v_x + np.cos(self.a[2])*np.cos(self.theta)*self.v_y + self.R*self.v_t)/self.r
 
             print(self.w)
 
