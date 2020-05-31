@@ -24,7 +24,8 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
         self.vel = np.array([0, 0, 0], dtype=np.float64)
         self.enc_last = ["00", "00", "00"]
         self.states = {"0001":1, "0010":-1, "0100":-1, "0111":1, "1000":1, "1011":-1, "1101":-1, "1110":1}
-
+        self.err_hist = []
+        
         self.ppr = 4*80*1 # 4 pulses per motor rev., 80 motor rev. = 1 wheel rev.
         self.duty = np.array([0, 0, 0], dtype=np.float64)
         self.w = np.array([0, 0, 0], dtype=np.float64)
@@ -61,6 +62,7 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
         self.pwm.append(GPIO.PWM(35, self.freq))
 
         for idx in range(0, 3):
+            self.err_hist.append([])
             self.pwm[idx*2].start(0.0)
             self.pwm[idx*2+1].start(0.0)
 
@@ -105,15 +107,29 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
             time.sleep(0.25)
 
     def control_loop(self):
+        p_gain = 10
+        i_gain = 0.5
+        d_gain = 2
+
         while(self.can_control):
             for idx in range(0, 3):
                 self.vel[idx] = 2*np.pi*(self.enc[idx] - self.prev_enc[idx])/self.ppr
                 self.prev_enc[idx] = self.enc[idx]
-                err = self.vel[idx] - self.w[idx]
-                if err > 0.0:
-                        self.duty[idx] -= 0.5
-                elif err < 0.0:
-                        self.duty[idx] += 0.5
+                if len(self.err_hist[idx]) > 10:
+                    self.err_hist[idx].pop(0)
+                self.err_hist[idx].append(self.vel[idx] - self.w[idx])
+                p_err = self.err_hist[idx][len(self.err_hist[idx])-1]
+                i_err = np.sum(self.err_hist[idx])
+                d_err = (self.err_hist[idx][len(self.err_hist[idx])-1] - self.err_hist[idx][len(self.err_hist[idx])-2])/2.0
+
+                output = p_err*p_gain + i_err*i_gain + d_err*d_gain
+                
+                self.duty[idx] = output
+                #if self.err_hist[len(self.err_hist)-1] > 0.0:
+                #        self.duty[idx] -= 0.5
+                #elif self.err_hist[len(self.err_hist)-1] < 0.0:
+                #        self.duty[idx] += 0.5
+
                 if self.duty[idx] > 100.0:
                         self.duty[idx] = 100.0
                 elif self.duty[idx] < -100.0:
