@@ -16,16 +16,21 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
     def __init__(self):
         GPIO.setmode(GPIO.BOARD)
 
+        self.new_cmd = False
         self.chan_list = [33, 35, 36, 37, 38, 40]
         self.enc_list =  [13, 15, 16, 18, 29, 31]
 
-        self.enc = np.array([0, 0, 0], dtype=np.int64)
+        self.enc = np.array([0, 0, 0], dtype=np.float64)
         self.prev_enc = [0, 0, 0]
         self.vel = np.array([0, 0, 0], dtype=np.float64)
         self.enc_last = ["00", "00", "00"]
         self.states = {"0001":1, "0010":-1, "0100":-1, "0111":1, "1000":1, "1011":-1, "1101":-1, "1110":1}
         self.err_hist = []
-        
+
+        self.p_gain = np.array([40, 40, 40], dtype=np.float64)
+        self.i_gain = np.array([0.3, 0.3, 0.3], dtype=np.float64)
+        self.d_gain = np.array([0.0, 0.0, 0.0], dtype=np.float64)
+
         self.ppr = 4*80*1 # 4 pulses per motor rev., 80 motor rev. = 1 wheel rev.
         self.duty = np.array([0, 0, 0], dtype=np.float64)
         self.w = np.array([0, 0, 0], dtype=np.float64)
@@ -79,7 +84,7 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
         if key in self.states:
             drctn = self.states[key]
             self.enc_last[0] = curr
-            self.enc[0] += drctn
+            self.enc[0] = (self.enc[0] + drctn)/2.0
 
     def encoder_1_cbk(self, chan):
         curr = str(GPIO.input(16)) + str(GPIO.input(18))
@@ -87,7 +92,7 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
         if key in self.states:
             drctn = self.states[key]
             self.enc_last[1] = curr
-            self.enc[1] += drctn
+            self.enc[1] = (self.enc[1] + drctn)/2.0
 
     def encoder_2_cbk(self, chan):
         curr = str(GPIO.input(29)) + str(GPIO.input(31))
@@ -95,7 +100,7 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
         if key in self.states:
             drctn = self.states[key]
             self.enc_last[2] = curr
-            self.enc[2] += drctn
+            self.enc[2] = (self.enc[2] + drctn)/2.0
 
     def display_stats(self):
         while(self.can_display):
@@ -107,11 +112,20 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
             time.sleep(0.25)
 
     def control_loop(self):
-        p_gain = 10
-        i_gain = 0.5
-        d_gain = 2
-
+        stop_count = 0
         while(self.can_control):
+            if self.new_cmd:
+                self.new_cmd = False
+                stop_count = 0
+            else:
+                stop_count += 1
+
+            if stop_count > 50:
+               stop_count = 50
+               self.v_x = 0.0
+               self.v_y = 0.0
+               self.v_t = 0.0
+
             for idx in range(0, 3):
                 self.vel[idx] = 2*np.pi*(self.enc[idx] - self.prev_enc[idx])/self.ppr
                 self.prev_enc[idx] = self.enc[idx]
@@ -122,8 +136,7 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
                 i_err = np.sum(self.err_hist[idx])
                 d_err = (self.err_hist[idx][len(self.err_hist[idx])-1] - self.err_hist[idx][len(self.err_hist[idx])-2])/2.0
 
-                output = p_err*p_gain + i_err*i_gain + d_err*d_gain
-                
+                output = p_err*self.p_gain[idx] + i_err*self.i_gain[idx] + d_err*self.d_gain[idx]
                 self.duty[idx] = output
                 #if self.err_hist[len(self.err_hist)-1] > 0.0:
                 #        self.duty[idx] -= 0.5
@@ -144,6 +157,7 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
                 else:
                     self.pwm[idx*2].ChangeDutyCycle(self.duty[idx])
                     self.pwm[idx*2+1].ChangeDutyCycle(0.0)
+            
             time.sleep(0.01)
 
     def SetState(self, request, context):
@@ -155,12 +169,12 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
             self.v_t = request.vel_t
 
             self.w = (-np.sin(self.a)*np.cos(self.a)*self.v_x + np.cos(self.a)*np.cos(self.theta)*self.v_y + self.R*self.v_t)/self.r
-            
+            self.new_cmd = True
             #self.w[0] = (-np.sin(self.a[0])*np.cos(self.a[0])*self.v_x + np.cos(self.a[0])*np.cos(self.theta)*self.v_y + self.R*self.v_t)/self.r
             #self.w[1] = (-np.sin(self.a[1])*np.cos(self.a[1])*self.v_x + np.cos(self.a[1])*np.cos(self.theta)*self.v_y + self.R*self.v_t)/self.r
             #self.w[2] = (-np.sin(self.a[2])*np.cos(self.a[2])*self.v_x + np.cos(self.a[2])*np.cos(self.theta)*self.v_y + self.R*self.v_t)/self.r
 
-            print(self.w)
+            #print(self.w)
 
             result.res = True
         except Exception as e:
