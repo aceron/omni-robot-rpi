@@ -127,8 +127,9 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
                self.v_t = 0.0
 
             for idx in range(0, 3):
-                self.vel[idx] = 2*np.pi*(self.enc[idx] - self.prev_enc[idx])/self.ppr
-                self.prev_enc[idx] = self.enc[idx]
+                filtered_enc = (self.prev_enc[idx] + self.enc[idx])/2.0
+                self.vel[idx] = 2*np.pi*(filtered_enc - self.prev_enc[idx])/self.ppr
+                self.prev_enc[idx] = filtered_enc
                 if len(self.err_hist[idx]) > 10:
                     self.err_hist[idx].pop(0)
                 self.err_hist[idx].append(self.vel[idx] - self.w[idx])
@@ -138,11 +139,7 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
 
                 output = p_err*self.p_gain[idx] + i_err*self.i_gain[idx] + d_err*self.d_gain[idx]
                 self.duty[idx] = output
-                #if self.err_hist[len(self.err_hist)-1] > 0.0:
-                #        self.duty[idx] -= 0.5
-                #elif self.err_hist[len(self.err_hist)-1] < 0.0:
-                #        self.duty[idx] += 0.5
-
+                
                 if self.duty[idx] > 100.0:
                         self.duty[idx] = 100.0
                 elif self.duty[idx] < -100.0:
