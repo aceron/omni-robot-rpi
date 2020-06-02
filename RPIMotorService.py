@@ -23,13 +23,15 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
         self.enc = np.array([0, 0, 0], dtype=np.float64)
         self.prev_enc = [0, 0, 0]
         self.vel = np.array([0, 0, 0], dtype=np.float64)
+        self.prev_vel = np.array([0, 0, 0], dtype=np.float64)
         self.enc_last = ["00", "00", "00"]
         self.states = {"0001":1, "0010":-1, "0100":-1, "0111":1, "1000":1, "1011":-1, "1101":-1, "1110":1}
         self.err_hist = []
 
-        self.p_gain = np.array([40, 40, 40], dtype=np.float64)
-        self.i_gain = np.array([0.3, 0.3, 0.3], dtype=np.float64)
-        self.d_gain = np.array([0.0, 0.0, 0.0], dtype=np.float64)
+        self.p_gain = np.array([42.5, 42.5, 42.5], dtype=np.float64)
+        self.i_gain = np.array([0.0001, 0.0001, 0.0001], dtype=np.float64)
+        self.d_gain = np.array([0.000001, 0.000001, 0.000001], dtype=np.float64)
+        self.cut_vel = np.array([0.055, 0.055, 0.055], dtype=np.float64)
 
         self.ppr = 4*80*1 # 4 pulses per motor rev., 80 motor rev. = 1 wheel rev.
         self.duty = np.array([0, 0, 0], dtype=np.float64)
@@ -127,10 +129,12 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
                self.v_t = 0.0
 
             for idx in range(0, 3):
-                filtered_enc = (self.prev_enc[idx] + self.enc[idx])/2.0
-                self.vel[idx] = 2*np.pi*(filtered_enc - self.prev_enc[idx])/self.ppr
-                self.prev_enc[idx] = filtered_enc
-                if len(self.err_hist[idx]) > 10:
+                self.prev_vel[idx] = self.vel[idx]
+                self.vel[idx] = (self.prev_vel[idx] + 2*np.pi*(self.enc[idx] - self.prev_enc[idx])/self.ppr)/2.0
+                if self.vel[idx] < self.cut_vel[idx] and self.vel[idx] > -self.cut_vel[idx]:
+                    self.vel[idx] = 0.0
+                self.prev_enc[idx] = self.enc[idx]
+                if len(self.err_hist[idx]) > 20:
                     self.err_hist[idx].pop(0)
                 self.err_hist[idx].append(self.vel[idx] - self.w[idx])
                 p_err = self.err_hist[idx][len(self.err_hist[idx])-1]
