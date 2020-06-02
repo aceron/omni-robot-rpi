@@ -84,7 +84,7 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
         if key in self.states:
             drctn = self.states[key]
             self.enc_last[0] = curr
-            self.enc[0] = (self.enc[0] + drctn)/2.0
+            self.enc[0] += float(drctn)
 
     def encoder_1_cbk(self, chan):
         curr = str(GPIO.input(16)) + str(GPIO.input(18))
@@ -92,7 +92,7 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
         if key in self.states:
             drctn = self.states[key]
             self.enc_last[1] = curr
-            self.enc[1] = (self.enc[1] + drctn)/2.0
+            self.enc[1] += float(drctn)
 
     def encoder_2_cbk(self, chan):
         curr = str(GPIO.input(29)) + str(GPIO.input(31))
@@ -100,7 +100,7 @@ class RPIMotorServiceImpl(rpi_motor_pb2_grpc.RPIMotorServicer):
         if key in self.states:
             drctn = self.states[key]
             self.enc_last[2] = curr
-            self.enc[2] = (self.enc[2] + drctn)/2.0
+            self.enc[2] += float(drctn)
 
     def display_stats(self):
         while(self.can_display):

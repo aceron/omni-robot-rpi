@@ -66,24 +66,24 @@ class PS4Controller(object):
                 # Insert your code on what you would like to happen for each event here!
                 # In the current setup, I have the state simply printing out to the screen.
                 
-                if self.hat_data[0][1] == 1:
+                if self.hat_data[0][0] == 1:
                     v_y = 0.1
-                elif self.hat_data[0][1] == -1:
+                elif self.hat_data[0][0] == -1:
                     v_y = -0.1
                 else:
                     v_y = 0.0
 
-                if self.hat_data[0][0] == 1:
+                if self.hat_data[0][1] == 1:
                     v_x = 0.1
-                elif self.hat_data[0][0] == -1:
+                elif self.hat_data[0][1] == -1:
                     v_x = -0.1
                 else:
                     v_x = 0.0
 
                 if self.button_data[4]==1 and self.button_data[5] == 0:
-                    v_t = 0.2 
+                    v_t = -0.2 
                 elif self.button_data[4]==0 and self.button_data[5] == 1:
-                    v_t = -0.2  
+                    v_t = 0.2  
                 else:
                     v_t = 0.0
 
@@ -98,7 +98,7 @@ def mainThread():
     global do_poll, v_x, v_y, v_t
 
     port = 50201
-    channel = grpc.insecure_channel('192.168.1.9:'+str(port))
+    channel = grpc.insecure_channel('192.168.1.11:'+str(port))
     client = rpi_motor_pb2_grpc.RPIMotorStub(channel)
 
     req = rpi_motor_pb2.StateRequest()
