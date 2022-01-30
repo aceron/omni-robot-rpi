@@ -1,3 +1,5 @@
+# Based on https://gist.github.com/claymcleod/028386b860b75e4f5472
+
 from __future__ import print_function
 
 import os
